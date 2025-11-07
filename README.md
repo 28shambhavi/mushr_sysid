@@ -42,21 +42,20 @@ MPC cost function class for autonomous vehicle trajectory tracking using a bicyc
 ### Cost Computation
 **`running_cost(states, actions)`** 
 - Returns instantaneous cost:
-- **Target tracking**: Position (weight=1.0) + Heading (weight=2.0)
-- **Turn anticipation**: Heading velocity cost (weight=5.0)
-- **Path following**: Distance to trajectory using tangential_distance function (weight=1.5)
-- **Control effort**: Throttle (0.001) + Steering (0.00001)
-- **Heading difference**: Cost for alignment/orientation error in car and block
+- Target tracking: Position (weight=1.0) + Heading (weight=2.0)
+- Turn anticipation: Heading velocity cost (weight=5.0)
+- Path following: Distance to trajectory using tangential_distance function (weight=1.5)
+- Control effort: Throttle (0.001) + Steering (0.00001)
+- Heading difference: Cost for alignment/orientation error in car and block
 
 **`terminal_state_cost(s, a)`** 
 - Final state cost (scaled 100x):
 - Position error to goal (weight=1.0)
 - Heading error to goal (weight=1.5)
+- tan_dist(poses, trajectory) - Used for calculating perpendicular distance of pose from path segments
 
-- **`tan_dist(poses, trajectory)`** - Used for calculating perpendicular distance of pose from path segments
 
-### functions
-- **`pushing_dynamics(states, actions)`** 
+**`pushing_dynamics(states, actions)`** 
 - - Bicycle model (wheelbase=0.295, dt=0.01)
   - State: [x, y, heading, block_x, block_y, block_heading]
   - Action: [steering_angle, speed]
