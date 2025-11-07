@@ -93,7 +93,7 @@ def main():
     car_start = [1, -1.0, np.pi/2]
 
     # TODO: bug - block orientation not affected by init state
-    block_start = [0.9, -0.7, np.pi/2]
+    block_start = [1.0, -0.7, np.pi/2]
     sim_env.reset()
     init_state = np.concatenate((pose_euler2quat(car_start),
                                  pose_euler2quat(block_start)))
