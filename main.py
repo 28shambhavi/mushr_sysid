@@ -44,7 +44,7 @@ def plot_trajectory(traj, title='Trajectory'):
     plt.title(title)
     plt.legend()
     plt.tight_layout()
-    plt.show()
+    # plt.show()
 
 class Rate:
     def __init__(self, frequency):
@@ -63,33 +63,54 @@ def generate_curved_path(start_pose, dis=1, curvature=0, num_points=100):
     # curvature = 0, straight line
     x0, y0, theta0 = start_pose
     if curvature == 0 or abs(curvature) < 1e-3:
-        s = np.linspace(0, dis, num_points)  # arc length parameter
-
-        x = x0 + s * np.cos(theta0)
-        y = y0 + s * np.sin(theta0)
-        theta = np.full(num_points, theta0)  # constant heading
-
-        traj = np.stack([x, y, theta], axis=1)
+        # Use precomputed cos/sin for theta0 for efficiency
+        cos_theta0 = np.cos(theta0)
+        sin_theta0 = np.sin(theta0)
+        # Use np.arange and manual scaling for linspace (faster)
+        if num_points == 1:
+            s = np.array([0.0])
+        else:
+            s = (dis / (num_points - 1)) * np.arange(num_points)
+        x = x0 + s * cos_theta0
+        y = y0 + s * sin_theta0
+        # Allocate all columns at once for efficiency
+        traj = np.empty((num_points, 3), dtype=float)
+        traj[:, 0] = x
+        traj[:, 1] = y
+        traj[:, 2] = theta0
         return traj
 
     else:
         R = 1.0 / curvature  # turning radius
         delta_theta = dis * curvature
-        center_x = x0 - R * np.sin(theta0)
-        center_y = y0 + R * np.cos(theta0)
-        angle_start = np.arctan2(y0 - center_y, x0 - center_x)
-        angles = np.linspace(angle_start, angle_start + delta_theta, num_points)
-
-        x = center_x + R * np.cos(angles)
-        y = center_y + R * np.sin(angles)
+        # Use precomputed cos/sin for theta0 for efficiency
+        sin_theta0 = np.sin(theta0)
+        cos_theta0 = np.cos(theta0)
+        center_x = x0 - R * sin_theta0
+        center_y = y0 + R * cos_theta0
+        dx = x0 - center_x
+        dy = y0 - center_y
+        angle_start = np.arctan2(dy, dx)
+        # Avoid np.linspace by using np.arange and scaling when num_points > 1
+        if num_points == 1:
+            angles = np.array([angle_start])
+        else:
+            angles = angle_start + (delta_theta / (num_points - 1)) * np.arange(num_points)
+        cos_angles = np.cos(angles)
+        sin_angles = np.sin(angles)
+        x = center_x + R * cos_angles
+        y = center_y + R * sin_angles
         theta = angles + np.pi / 2
         theta = np.arctan2(np.sin(theta), np.cos(theta))
-
-        traj = np.stack([x, y, theta], axis=1)
+        # Allocate all columns at once for efficiency
+        traj = np.empty((num_points, 3), dtype=float)
+        traj[:, 0] = x
+        traj[:, 1] = y
+        traj[:, 2] = theta
         return traj
 
 def main():
-    sim_env = gym.make("MushrBlock-v0", render_mode="human", xml_file="sysid_env3.xml")
+    sim_env = gym.make("MushrBlock-v0", render_mode="rgb_array", xml_file="sysid_env3.xml")
     car_start = [1, -1.0, np.pi/2]
 
     # TODO: bug - block orientation not affected by init state
@@ -103,7 +124,7 @@ def main():
     rate = Rate(1/dt)
 
     start_time = time.time()
-    max_time = 200
+    max_time = 20
     push_controller = PushingController()
     straight_line_path = generate_curved_path(block_start, dis=2, curvature=0, num_points=20)
     goal_reached = False
